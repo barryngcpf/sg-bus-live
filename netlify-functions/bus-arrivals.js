@@ -19,6 +19,7 @@ exports.handler = async (event, context) => {
     }
 
     const apiKey = event.headers['x-api-key'];
+    const busStopCode = event.queryStringParameters.code;
     
     if (!apiKey) {
         return {
@@ -28,13 +29,24 @@ exports.handler = async (event, context) => {
         };
     }
 
+    if (!busStopCode) {
+        return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Bus stop code required' })
+        };
+    }
+
     try {
-        const response = await fetch('https://datamall2.mytransport.sg/ltaodataservice/BusStops', {
-            headers: {
-                'AccountKey': apiKey,
-                'accept': 'application/json'
+        const response = await fetch(
+            `https://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode=${busStopCode}`,
+            {
+                headers: {
+                    'AccountKey': apiKey,
+                    'accept': 'application/json'
+                }
             }
-        });
+        );
 
         const data = await response.json();
         
