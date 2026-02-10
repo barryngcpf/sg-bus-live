@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SG Bus Live - Real-time Bus Arrivals</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .bus-stops {
+            display: grid;
+            gap: 15px;
+        }
+
+        .bus-stop-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .bus-stop-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        .bus-stop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .bus-stop-name {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .bus-stop-code {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .distance {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .bus-services {
+            display: grid;
+            gap: 12px;
+        }
+
+        .bus-service {
+            display: grid;
+            grid-template-columns: 80px 1fr auto;
+            gap: 15px;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .bus-number {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .arrivals {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .arrival {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            border: 1px solid #e0e0e0;
+        }
+
+        .arrival-time {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .arrival.arriving {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+
+        .arrival.arriving .arrival-time {
+            color: #28a745;
+        }
+
+        .load-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .load-low { background: #28a745; }
+        .load-medium { background: #ffc107; }
+        .load-high { background: #dc3545; }
+
+        .wheelchair {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .no-services {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2em;
+            }
+
+            .bus-service {
+                grid-template-columns: 60px 1fr;
+                gap: 10px;
+            }
+
+            .arrivals {
+                grid-column: 1 / -1;
+            }
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .api-info {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #dc3545;
+        }
+
+        .api-info h3 {
+            color: #dc3545;
+            margin-bottom: 10px;
+        }
+
+        .api-info code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚌 SG Bus Live</h1>
+            <p class="subtitle">Real-time bus arrivals in Singapore</p>
+        </header>
+
+        <div class="api-info">
+            <h3>⚠️ Setup Required</h3>
+            <p><strong>If running locally:</strong> Start the backend server first (see README.md)</p>
+            <p><strong>If deployed on Netlify:</strong> Just enter your LTA API key below and start using!</p>
+            <p style="margin-top: 10px;">Get your free LTA API key from <a href="https://datamall.lta.gov.sg/content/datamall/en/request-for-api.html" target="_blank">LTA DataMall</a></p>
+        </div>
+
+        <div class="controls">
+            <input type="text" id="apiKey" placeholder="Enter your LTA DataMall API Key" style="width: 100%; margin-bottom: 15px;">
+            
+            <button class="btn" id="loadStopsBtn" onclick="loadAllBusStops()">
+                📋 Load All Bus Stops Near Me
+            </button>
+
+            <div id="dropdownContainer" style="display: none; margin-top: 15px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Search or select a bus stop:</label>
+                <input type="text" id="busStopFilter" placeholder="Type to filter by name, road, or code..." style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1em; margin-bottom: 10px;" oninput="filterBusStops()">
+                <select id="busStopDropdown" size="8" style="width: 100%; padding: 8px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.95em; margin-bottom: 10px; font-family: monospace;">
+                    <option value="">-- No bus stops loaded --</option>
+                </select>
+                <button class="btn" onclick="showSelectedBusStop()" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                    Show Bus Arrivals
+                </button>
+            </div>
+
+            <div style="text-align: center; margin: 15px 0; color: #666;">- OR -</div>
+
+            <div class="search-box">
+                <input type="text" id="busStopCode" placeholder="Enter bus stop code (e.g., 83139)">
+                <button class="btn" onclick="searchBusStop()" style="width: auto; margin: 0;">Search</button>
+            </div>
+        </div>
+
+        <div id="status" class="status" style="display: none;"></div>
+        <div id="busStops" class="bus-stops"></div>
+    </div>
+
+    <script>
+        let userLocation = null;
+        let allBusStops = [];
+        const API_KEY_STORAGE = 'lta_api_key';
+
+        // Load saved API key
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem(API_KEY_STORAGE);
+            if (savedKey) {
+                document.getElementById('apiKey').value = savedKey;
+            }
+        });
+
+        // Save API key when changed
+        document.getElementById('apiKey').addEventListener('change', (e) => {
+            if (e.target.value.trim()) {
+                localStorage.setItem(API_KEY_STORAGE, e.target.value.trim());
+            }
+        });
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
+
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+
+        function getApiKey() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) {
+                showStatus('Please enter your LTA DataMall API key first', 'error');
+                return null;
+            }
+            return apiKey;
+        }
+
+        async function fetchWithProxy(url, apiKey) {
+            // Detect if running locally or on Netlify
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            
+            let backendUrl;
+            if (isLocal) {
+                // Local development - use local backend server
+                backendUrl = window.location.port === '3000' ? 'http://localhost:3000' : 
+                            window.location.port === '5000' ? 'http://localhost:5000' :
+                            'http://localhost:3000'; // default to Node.js port
+            } else {
+                // Production - use Netlify functions (same origin)
+                backendUrl = window.location.origin;
+            }
+
+            let endpoint;
+            if (url.includes('BusStops')) {
+                endpoint = `${backendUrl}/api/bus-stops`;
+            } else if (url.includes('BusArrival')) {
+                const busStopCode = url.match(/BusStopCode=(\d+)/)[1];
+                endpoint = `${backendUrl}/api/bus-arrivals/${busStopCode}`;
+            }
+
+            const response = await fetch(endpoint, {
+                headers: {
+                    'x-api-key': apiKey
+                }
+            });
+
+            return response;
+        }
+
+        async function loadAllBusStops() {
+            const apiKey = getApiKey();
+            if (!apiKey) return;
+
+            const btn = document.getElementById('loadStopsBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Loading all bus stops...';
+
+            showStatus('Fetching bus stop data from LTA...', 'loading');
+
+            try {
+                const url = 'https://datamall2.mytransport.sg/ltaodataservice/BusStops';
+                const response = await fetchWithProxy(url, apiKey);
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch bus stops. Check your API key and try enabling CORS proxy.');
+                }
+
+                const data = await response.json();
+                allBusStops = data.value;
+
+                // Sort by bus stop code
+                allBusStops.sort((a, b) => a.BusStopCode.localeCompare(b.BusStopCode));
+
+                // Populate dropdown
+                populateBusStopDropdown(allBusStops);
+
+                // Show dropdown
+                document.getElementById('dropdownContainer').style.display = 'block';
+                showStatus(`Loaded ${allBusStops.length} bus stops! Use the search box to filter.`, 'success');
+                btn.innerHTML = '🔄 Reload Bus Stops';
+
+            } catch (error) {
+                showStatus(`Error: ${error.message}. Make sure CORS proxy is enabled!`, 'error');
+                btn.innerHTML = '📋 Load All Bus Stops Near Me';
+                console.error('Fetch error:', error);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function populateBusStopDropdown(stops) {
+            const dropdown = document.getElementById('busStopDropdown');
+            dropdown.innerHTML = '';
+
+            if (stops.length === 0) {
+                dropdown.innerHTML = '<option value="">-- No matching bus stops --</option>';
+                return;
+            }
+
+            stops.forEach(stop => {
+                const option = document.createElement('option');
+                option.value = stop.BusStopCode;
+                option.textContent = `${stop.BusStopCode} - ${stop.Description} (${stop.RoadName})`;
+                dropdown.appendChild(option);
+            });
+        }
+
+        function filterBusStops() {
+            const filterText = document.getElementById('busStopFilter').value.toLowerCase();
+            
+            if (!filterText) {
+                populateBusStopDropdown(allBusStops);
+                return;
+            }
+
+            const filtered = allBusStops.filter(stop => {
+                return stop.BusStopCode.toLowerCase().includes(filterText) ||
+                       stop.Description.toLowerCase().includes(filterText) ||
+                       stop.RoadName.toLowerCase().includes(filterText);
+            });
+
+            populateBusStopDropdown(filtered);
+        }
+
+        async function showSelectedBusStop() {
+            const apiKey = getApiKey();
+            if (!apiKey) return;
+
+            const dropdown = document.getElementById('busStopDropdown');
+            const busStopCode = dropdown.value;
+
+            if (!busStopCode) {
+                showStatus('Please select a bus stop from the dropdown', 'error');
+                return;
+            }
+
+            const busStop = allBusStops.find(s => s.BusStopCode === busStopCode);
+            if (!busStop) {
+                showStatus('Bus stop not found', 'error');
+                return;
+            }
+
+            showStatus('Loading bus arrivals...', 'loading');
+            displayBusStops([busStop], apiKey);
+        }
+
+        function getCurrentCoords() {
+            if (!navigator.geolocation) {
+                showStatus('Geolocation is not supported by your browser', 'error');
+                return;
+            }
+
+            showStatus('Getting your coordinates...', 'loading');
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    document.getElementById('manualLat').value = position.coords.latitude.toFixed(6);
+                    document.getElementById('manualLng').value = position.coords.longitude.toFixed(6);
+                    showStatus(`Coordinates found! Latitude: ${position.coords.latitude.toFixed(6)}, Longitude: ${position.coords.longitude.toFixed(6)}`, 'success');
+                },
+                (error) => {
+                    let message = 'Unable to get your location. ';
+                    let details = '';
+                    
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            message += 'Permission denied.';
+                            details = 'Please allow location access in your browser settings. On mobile: Settings → Browser → Permissions → Location.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            message += 'Location unavailable.';
+                            details = 'Your device cannot determine your location. Try using WiFi or enabling location services.';
+                            break;
+                        case error.TIMEOUT:
+                            message += 'Request timed out.';
+                            details = 'Location request took too long. Try again or use manual coordinates.';
+                            break;
+                    }
+                    
+                    showStatus(message + ' ' + details, 'error');
+                    
+                    // Additional debugging
+                    console.log('Geolocation error:', error);
+                    console.log('Error code:', error.code);
+                    console.log('Error message:', error.message);
+                    console.log('HTTPS?', window.location.protocol === 'https:');
+                    console.log('Protocol:', window.location.protocol);
+                }
+            );
+        }
+
+        function useManualLocation() {
+            const apiKey = getApiKey();
+            if (!apiKey) return;
+
+            const lat = parseFloat(document.getElementById('manualLat').value);
+            const lng = parseFloat(document.getElementById('manualLng').value);
+
+            if (isNaN(lat) || isNaN(lng)) {
+                showStatus('Please enter valid latitude and longitude', 'error');
+                return;
+            }
+
+            if (lat < 1.1 || lat > 1.5 || lng < 103.6 || lng > 104.1) {
+                showStatus('Coordinates seem outside Singapore. Please check your values.', 'error');
+                return;
+            }
+
+            userLocation = { lat, lng };
+            showStatus('Loading nearby bus stops...', 'loading');
+            
+            loadNearbyBusStops(apiKey).catch(error => {
+                showStatus(`Error: ${error.message}`, 'error');
+            });
+        }
+
+        async function getNearbyStops() {
+            const apiKey = getApiKey();
+            if (!apiKey) return;
+
+            const btn = document.getElementById('locationBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Getting your location...';
+
+            // Log debugging info
+            console.log('Browser supports geolocation:', !!navigator.geolocation);
+            console.log('Current protocol:', window.location.protocol);
+            console.log('Is HTTPS:', window.location.protocol === 'https:');
+
+            if (!navigator.geolocation) {
+                showStatus('❌ Geolocation is not supported by your browser. Please use manual coordinates or search by bus stop code.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '📍 Find Nearby Bus Stops (Auto)';
+                return;
+            }
+
+            // Additional check for secure context
+            if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                showStatus('⚠️ Geolocation requires HTTPS. Please use manual coordinates below, or host this page on HTTPS (e.g., Netlify).', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '📍 Find Nearby Bus Stops (Auto)';
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+
+                    console.log('Location obtained:', userLocation);
+                    showStatus('Loading nearby bus stops...', 'loading');
+                    
+                    try {
+                        await loadNearbyBusStops(apiKey);
+                        btn.innerHTML = '🔄 Refresh Location';
+                    } catch (error) {
+                        showStatus(`Error: ${error.message}`, 'error');
+                    } finally {
+                        btn.disabled = false;
+                    }
+                },
+                (error) => {
+                    let message = '❌ Unable to get your location. ';
+                    let suggestion = '';
+                    
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            message += 'Location access was denied.';
+                            suggestion = '💡 Solution: Allow location access when prompted, or check browser settings. You can also use manual coordinates below.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            message += 'Location information is unavailable.';
+                            suggestion = '💡 Solution: Enable location services on your device, or use manual coordinates below.';
+                            break;
+                        case error.TIMEOUT:
+                            message += 'Location request timed out.';
+                            suggestion = '💡 Solution: Try again, or use manual coordinates below.';
+                            break;
+                        default:
+                            message += 'An unknown error occurred.';
+                            suggestion = '💡 Solution: Use manual coordinates or search by bus stop code below.';
+                    }
+                    
+                    showStatus(message + ' ' + suggestion, 'error');
+                    console.error('Geolocation error:', error);
+                    btn.disabled = false;
+                    btn.innerHTML = '📍 Find Nearby Bus Stops (Auto)';
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        async function loadNearbyBusStops(apiKey) {
+            // Fetch all bus stops
+            const response = await fetch('https://datamall2.mytransport.sg/ltaodataservice/BusStops', {
+                headers: {
+                    'AccountKey': apiKey,
+                    'accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch bus stops. Check your API key.');
+            }
+
+            const data = await response.json();
+            const busStops = data.value;
+
+            // Calculate distances and sort
+            const stopsWithDistance = busStops.map(stop => ({
+                ...stop,
+                distance: calculateDistance(
+                    userLocation.lat, userLocation.lng,
+                    stop.Latitude, stop.Longitude
+                )
+            })).sort((a, b) => a.distance - b.distance);
+
+            // Get nearest 10 stops
+            const nearestStops = stopsWithDistance.slice(0, 10);
+
+            // Load arrival data for each stop
+            displayBusStops(nearestStops, apiKey);
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth's radius in km
+            const dLat = toRad(lat2 - lat1);
+            const dLon = toRad(lon2 - lon1);
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function toRad(degrees) {
+            return degrees * Math.PI / 180;
+        }
+
+        async function searchBusStop() {
+            const apiKey = getApiKey();
+            if (!apiKey) return;
+
+            const busStopCode = document.getElementById('busStopCode').value.trim();
+            if (!busStopCode) {
+                showStatus('Please enter a bus stop code', 'error');
+                return;
+            }
+
+            showStatus('Loading bus stop...', 'loading');
+
+            try {
+                // If we already have all bus stops loaded, use that data
+                if (allBusStops.length > 0) {
+                    const busStop = allBusStops.find(s => s.BusStopCode === busStopCode);
+                    
+                    if (!busStop) {
+                        showStatus('Bus stop not found', 'error');
+                        return;
+                    }
+
+                    displayBusStops([busStop], apiKey);
+                } else {
+                    // Fetch bus stops first
+                    const url = 'https://datamall2.mytransport.sg/ltaodataservice/BusStops';
+                    const stopResponse = await fetchWithProxy(url, apiKey);
+
+                    if (!stopResponse.ok) {
+                        throw new Error('Failed to fetch bus stops. Make sure CORS proxy is enabled!');
+                    }
+
+                    const stopData = await stopResponse.json();
+                    const busStop = stopData.value.find(s => s.BusStopCode === busStopCode);
+
+                    if (!busStop) {
+                        showStatus('Bus stop not found', 'error');
+                        return;
+                    }
+
+                    displayBusStops([busStop], apiKey);
+                }
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function displayBusStops(busStops, apiKey) {
+            const container = document.getElementById('busStops');
+            container.innerHTML = '';
+
+            if (busStops.length === 0) {
+                showStatus('No bus stops found', 'error');
+                return;
+            }
+
+            showStatus(`Found ${busStops.length} bus stop(s)`, 'success');
+
+            for (const stop of busStops) {
+                const arrivals = await getBusArrivals(stop.BusStopCode, apiKey);
+                const card = createBusStopCard(stop, arrivals);
+                container.appendChild(card);
+            }
+        }
+
+        async function getBusArrivals(busStopCode, apiKey) {
+            try {
+                const url = `https://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode=${busStopCode}`;
+                const response = await fetchWithProxy(url, apiKey);
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch arrivals');
+                }
+
+                const data = await response.json();
+                return data.Services || [];
+            } catch (error) {
+                console.error('Error fetching arrivals:', error);
+                return [];
+            }
+        }
+
+        function createBusStopCard(stop, services) {
+            const card = document.createElement('div');
+            card.className = 'bus-stop-card';
+
+            const header = document.createElement('div');
+            header.className = 'bus-stop-header';
+            header.innerHTML = `
+                <div>
+                    <div class="bus-stop-name">${stop.Description}</div>
+                    <div class="distance">${stop.RoadName}${stop.distance ? ` • ${(stop.distance * 1000).toFixed(0)}m away` : ''}</div>
+                </div>
+                <div class="bus-stop-code">${stop.BusStopCode}</div>
+            `;
+            card.appendChild(header);
+
+            const servicesContainer = document.createElement('div');
+            servicesContainer.className = 'bus-services';
+
+            if (services.length === 0) {
+                servicesContainer.innerHTML = '<div class="no-services">No bus services available</div>';
+            } else {
+                services.forEach(service => {
+                    const serviceDiv = createBusServiceElement(service);
+                    servicesContainer.appendChild(serviceDiv);
+                });
+            }
+
+            card.appendChild(servicesContainer);
+            return card;
+        }
+
+        function createBusServiceElement(service) {
+            const div = document.createElement('div');
+            div.className = 'bus-service';
+
+            const busNumber = document.createElement('div');
+            busNumber.className = 'bus-number';
+            busNumber.textContent = service.ServiceNo;
+
+            const arrivals = document.createElement('div');
+            arrivals.className = 'arrivals';
+
+            [service.NextBus, service.NextBus2, service.NextBus3].forEach((bus, index) => {
+                if (bus && bus.EstimatedArrival) {
+                    const arrivalDiv = createArrivalElement(bus, index === 0);
+                    arrivals.appendChild(arrivalDiv);
+                }
+            });
+
+            if (arrivals.children.length === 0) {
+                arrivals.innerHTML = '<div style="color: #999;">No timing available</div>';
+            }
+
+            div.appendChild(busNumber);
+            div.appendChild(arrivals);
+
+            return div;
+        }
+
+        function createArrivalElement(bus, isNext) {
+            const div = document.createElement('div');
+            const minutes = Math.round((new Date(bus.EstimatedArrival) - new Date()) / 60000);
+            
+            div.className = 'arrival';
+            if (minutes <= 1) {
+                div.classList.add('arriving');
+            }
+
+            const load = bus.Load || 'SEA';
+            const loadClass = load === 'SEA' ? 'low' : load === 'SDA' ? 'medium' : 'high';
+            const loadText = load === 'SEA' ? '●' : load === 'SDA' ? '◐' : '●';
+
+            let timeText = minutes <= 0 ? 'Arriving' : minutes === 1 ? '1 min' : `${minutes} mins`;
+            
+            div.innerHTML = `
+                <span class="load-indicator load-${loadClass}" title="${load === 'SEA' ? 'Seats Available' : load === 'SDA' ? 'Standing Available' : 'Limited Standing'}"></span>
+                <span class="arrival-time">${timeText}</span>
+                ${bus.Feature === 'WAB' ? ' <span class="wheelchair" title="Wheelchair Accessible">♿</span>' : ''}
+            `;
+
+            return div;
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (apiKey && userLocation) {
+                loadNearbyBusStops(apiKey);
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

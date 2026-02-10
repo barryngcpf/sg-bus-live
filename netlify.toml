@@ -1,0 +1,13 @@
+[build]
+  functions = "netlify-functions"
+
+[[redirects]]
+  from = "/api/bus-stops"
+  to = "/.netlify/functions/bus-stops"
+  status = 200
+
+[[redirects]]
+  from = "/api/bus-arrivals"
+  to = "/.netlify/functions/bus-arrivals"
+  status = 200
+
